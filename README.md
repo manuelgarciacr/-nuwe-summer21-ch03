@@ -1,3 +1,16 @@
+# Tecnología
+
+He utilizádo las siguientes versiones:
+
+React 17.0.0
+Typescript 4.1.2
+Controles y theming con Material UI 4.12.3
+Google Maps React 2.0.6
+- Google Maps API's. 
+    Directions
+    Maps JavaScript
+    Places
+    
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
