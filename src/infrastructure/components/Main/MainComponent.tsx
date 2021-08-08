@@ -52,6 +52,7 @@ function Main() {
     }
 
     // Origin point marker 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [centerMarker, setCenterMarker] = useState(
         () => {
             const marker = new tt.Marker({
