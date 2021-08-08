@@ -2,8 +2,11 @@
 
 El funcionamiento es muy intuitivo. Primero Geolocaliza el dispositivo. Si no tengo los permisos necesarios se muestra un mensaje:
 
+![AA](https://user-images.githubusercontent.com/29376434/128625891-a3548e9c-0f35-4d3d-9509-2b9c2cf9d096.png)
 
+aaaaa
 
+He creado un marcador 
 # La idea
 
 He utilizado la API de TomTom para mi projecto, experimentando así con una alternativa a Google Maps.
