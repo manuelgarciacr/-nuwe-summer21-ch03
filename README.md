@@ -1,15 +1,33 @@
+# Funcionamiento
+
+El funcionamiento es muy intuitivo. Primero Geolocaliza el dispositivo. Si no tengo los permisos necesarios se muestra un mensaje:
+
+
+
+# La idea
+
+He utilizado la API de TomTom para mi projecto, experimentando así con una alternativa a Google Maps.
+El acceso es libre, siempre que el uso no supere unas ciertas cuotas. No es necesaria una Tarjeta de Crédito ni te piden datos irrelevantes como el número de teléfono. (Life after Google).
+
+# Deploy
+
+He utilizado Netlify para el deploy:
+
+[https://610f85ee14cf621af7b6b2cf--naughty-spence-7be08c.netlify.app/](https://610f85ee14cf621af7b6b2cf--naughty-spence-7be08c.netlify.app/)
+
 # Tecnología
 
 He utilizádo las siguientes versiones:
 
-React 17.0.0
+React 16.11.0
 Typescript 4.1.2
 Controles y theming con Material UI 4.12.3
-Google Maps React 2.0.6
-- Google Maps API's. 
-    Directions
-    Maps JavaScript
-    Places
+Material UI Lab 4.0.0-alpha.60
+TomTom API V6
+react-moment 1.1.1
+axios 0.21.1
+Turf 6.5.0
+
     
 # Getting Started with Create React App
 
