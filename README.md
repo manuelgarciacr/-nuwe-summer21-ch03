@@ -1,12 +1,31 @@
+
+# CodeFactor
+
+![image](https://user-images.githubusercontent.com/29376434/128626456-e7f367c7-0825-4eb3-a021-130960f6f6dc.png)
+
+He tenido que incorporar muchos archivos de la API de TomTom. Modificando varios de ellos con Typescript, etc. pero es código JS y aparecen multitud de issues que han bajado el rating a nivel C.
+
+También hay varios issues de complejidad, pero no he podido hacer gran cosa, tenía que adaptarme a los archivos que disponía.
+
 # Funcionamiento
 
-El funcionamiento es muy intuitivo. Primero Geolocaliza el dispositivo. Si no tengo los permisos necesarios se muestra un mensaje:
+El funcionamiento es muy intuitivo. Primero Geolocaliza el dispositivo. Si no tengo los permisos necesarios se muestra un mensaje.
 
-![AA](https://user-images.githubusercontent.com/29376434/128625891-a3548e9c-0f35-4d3d-9509-2b9c2cf9d096.png)
+He creado un marcador azul en el mapa que será el origen de todas las búsquedas. Este marcador se puede arrastrar y si no lo vemos en pantalla he creado un botón en el mapa que lo moverá hasta el centro de la vista actual. 
 
-aaaaa
+He añadido dos sliders para seleccionar el rádio de las distintas búsquedas: Uno mas preciso de 100 a 999 metros y otro más general que va desde un kilómetro hasta 10 kilómetros.
 
-He creado un marcador 
+La búsqueda con autocomplete se hace filtrando bares, restaurantes y parkes. Los distintos lugares aparecen agrupados por tipo de POI.
+
+Una vez seleccionado un lugar no hace falta pulsar el botón de búsqueda, aparece directamente en el mapa junto con la ruta en coche y las instrucciones para el viaje.
+
+Pulsando los botones oportunos se seleccionarán los lugares más cercanos de las distintas categorias, con un máximo de 100 POI localizados. Google Maps solo permite un máximo de 60.
+
+En el mapa aparecerá resaltado el perímetro buscado.
+
+Aparecerán en pantalla mensajes con los sitios encontrados, errores, etc.
+
+ 
 # La idea
 
 He utilizado la API de TomTom para mi projecto, experimentando así con una alternativa a Google Maps.
