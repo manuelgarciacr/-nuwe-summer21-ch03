@@ -98,7 +98,6 @@ export class SearchMarkersManager {
             }
             const marker = new SearchMarker(poiOpts, this._options);
             marker.onClick(function(this: SearchMarkersManager, clickedMarker: EntryPoints) {
-alert("WW")
                 
                 if (this._lastClickedMarker && this._lastClickedMarker !== clickedMarker) {
                     this._lastClickedMarker?.clearEntryPoints();
@@ -113,7 +112,6 @@ alert("WW")
     getMarkers = () => this.markers;
 
     openPopup = (markerId: string) => {
-alert("OP")        
         //this ensures, that only one popup is opened at the time
         for (const marker in this.markers) {
             const current = this.markers[marker];

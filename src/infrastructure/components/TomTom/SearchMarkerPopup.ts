@@ -32,7 +32,7 @@ export class SearchMarkerPopup extends tt.Popup{
     
         const popupContentElem = document.createElement('div');
         popupContentElem.className = 'pop-up-content';
-    
+        popupContentElem.setAttribute("style", "color: black")
         const addressInformationElem = document.createElement('div');
     
         if (this.poiData.name) {
@@ -45,6 +45,13 @@ export class SearchMarkerPopup extends tt.Popup{
         this.createDivWithContent('pop-up-result-position', this.poiData.position.lat +
             ', ' + longitude, addressInformationElem);
     
+        // const route = document.createElement('button');
+        // route.innerText="Route";
+        //    route.addEventListener("click", function modifyText() {
+        //     alert("WW");
+        //   })
+        // addressInformationElem.appendChild(route);
+
         if (this.poiData.type) {
             this.createDivWithContent('pop-up-result-type', this.poiData.type + ' entry', addressInformationElem);
         }

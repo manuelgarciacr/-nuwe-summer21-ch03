@@ -36,7 +36,6 @@ export class SearchMarker {
         innerElem.setAttribute('style', 'border-radius: 50%; border: 3px solid black;');
         const icon = new SearchIconCreator('white', this.poiData).getIcon();
         innerElem.className = 'marker-inner ' + icon;
-    
         elem.appendChild(innerElem);
         this.drawEntryPoints(elem);
         return elem;

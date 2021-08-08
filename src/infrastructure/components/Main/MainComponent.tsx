@@ -1,25 +1,28 @@
 import * as React from "react";
 import { useState, useEffect, useRef, MutableRefObject } from "react";
-import {
-    Container,
-    Row,
-    Col,
-    Navbar,
-    NavbarBrand
-} from "reactstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import * as tt from "@tomtom-international/web-sdk-maps";
+import ttSvc from "@tomtom-international/web-sdk-services";
+import { SearchMarkersManager } from "../TomTom/SearchMarkersManager";
+import "../../css/index.css";
+import "../../css/poi.css";
+import { DomHelpers } from "../TomTom/dom-helpers";
+
 import axios from "axios";
 import circle from '@turf/circle';
 
-import { SearchMarkersManager } from "../TomTom/SearchMarkersManager";
 import SidePanel from "./SidePanel";
 
-import "../../css/index.css";
-import "../../css/poi.css";
 import Button from "@material-ui/core/Button";
 import useStyles from "./styles";
+import { ResultsManager } from "../TomTom/results-manager";
+import GuidancePanel from "../TomTom/guidance-panel";
+import Typography from "@material-ui/core/Typography";
+import AppBar from "@material-ui/core/AppBar";
+import Paper from "@material-ui/core/Paper";
+import Alert from "@material-ui/lab/Alert";
+import AlertTitle from "@material-ui/lab/AlertTitle";
 
 interface moveEvent extends tt.TTEvent {
     geolocateSource: boolean
@@ -28,14 +31,16 @@ interface moveEvent extends tt.TTEvent {
 function Main() {
     const classes = useStyles();
     const mapElement = useRef() as MutableRefObject<HTMLDivElement>;
+    const resultsManager = new ResultsManager("");
+    const routePoints: { start?: tt.LngLat, finish?: tt.LngLat } = {};
     const [localization, setLocalization] = useState<tt.LngLat>();
     const [center, setCenter] = useState<tt.LngLat>(new tt.LngLat(0, 0));
-    // const [radius, setRadius] = useState(200)
     const [error, setError] = useState("");
+    const [count, setCount] = useState(0);
     const [map, setMap] = useState<tt.Map | null>(null);
     const [searchMarkersManager, setSearchMarkersManage] = useState<SearchMarkersManager>();
     const [isStyleData, setStyleData] = useState(false);
-    
+
     //////////////////////////////////////////////////////
     //
     // Origin Point Marker
@@ -58,7 +63,7 @@ function Main() {
             marker.getElement().classList.add("cls-center-marker");
             return marker
         }
-    
+
     );
 
     // Custom control for move the origin point marker 
@@ -75,55 +80,68 @@ function Main() {
     //
     //////////////////////////////////////////////////////
 
-    
     //////////////////////////////////////////////////////
     //
     // Handle Search
     //
 
-    const handleSearch = async (categorySet: string[], radius: number) => {
+    const handleState = (value: any, categorySet: string, radius: number, status: "idle" | "searching" | "success") => {
+        if (value) {
+            handleResultsFound([value], true)
+        } else if (categorySet) {
+            handleSearch(categorySet, radius)
+        }
+    }
+
+    const handleSearch = async (categorySet: string, radius: number) => {
         if (!map)
             return;
-console.log("handleSearch", radius, map.getLayer("radiusofsearch"))
         const data = circle(center.toArray(), radius / 1000);
-console.log("DATAS", data);
         (map.getSource('radiusofsearch') as tt.GeoJSONSource).setData(data);
-        const cat = categorySet.length ? categorySet.join(',') : "0000"
+        const cat = categorySet.length ? categorySet : "0000"
         const query = "";
         const baseUrl = 'https://api.tomtom.com/search/2/nearbySearch';
         const queryString = `&limit=110&lat=${center?.lat}&lon=${center?.lng}&radius=${radius}&language=es-ES&categorySet=${cat}&key=${process.env.REACT_APP_NUWE2103_API_KEY || ""}`;
         const response = await axios.get(`${baseUrl}/${query}.json?${queryString}`);
-console.log("END handleSearch")
-        handleResultsFound({data: {results: {fuzzySearch: {results: response.data.results}}}})
+        handleResultsFound(response.data.results)
     }
 
-    function handleResultsFound(event: { data: { results: { fuzzySearch: { results: any; }; }; }; }) {
-        var results = event.data.results.fuzzySearch.results;
+    function handleResultsFound(results: any, success?: boolean) {
+        clearMap();
+        resultsManager.resultsNotFound();
+        searchMarkersManager?.clear();
         if (results.length === 0) {
-            searchMarkersManager?.clear();
+            setTimeout(() => setError(""), 8000)
+            setError("No hemos encontrado ninguna coincidencia")
+            return
         }
+        setTimeout(() => setCount(0), 8000)
+        setCount(results.length);
         searchMarkersManager?.draw(results);
+        if (success) {
+            const { lat, lon } = results[0].position;
+            updateMapView("finish", new tt.LngLat(lon, lat))
+        }
         fitToViewport(results);
     }
 
     function fitToViewport(markerData: string | any[]) {
-console.log("fitToViewport", markerData)        
         // eslint-disable-next-line no-mixed-operators
         if (!markerData || markerData instanceof Array && !markerData.length) {
             return;
         }
-        var bounds = new tt.LngLatBounds();
+        const bounds = new tt.LngLatBounds();
         if (markerData instanceof Array) {
             markerData.forEach(function (marker) {
-                 bounds.extend(getBounds(marker));
+                bounds.extend(getBounds(marker));
             });
         } else {
             bounds.extend(getBounds(markerData));
         }
         map?.fitBounds(bounds, { padding: 10, linear: true });
     }
-    
-    function getBounds(data: any):tt.LngLatBounds {
+
+    function getBounds(data: any): tt.LngLatBounds {
         if (data.viewport) {
             const btmRight = data.viewport.btmRightPoint.lng || data.viewport.btmRightPoint.lon;
             const topLeft = data.viewport.topLeftPoint.lng || data.viewport.topLeftPoint.lon;
@@ -133,14 +151,108 @@ console.log("fitToViewport", markerData)
         }
         return new tt.LngLatBounds(undefined, undefined)
     }
-    
+
     //
     // Handle Search
     //
     //////////////////////////////////////////////////////
 
+    //////////////////////////////////////////////////////
+    //
+    // Handle Route
+    //
+
+    const updateMapView = (type: string, position?: tt.LngLat) => {
+        if (type === "start")
+            routePoints.start = center;
+        else {
+            routePoints.start = center;
+            routePoints.finish = position!;
+        }
+
+        if (routePoints.start && routePoints.finish)
+            handleDrawRoute(type);
+    }
+
+    const handleDrawRoute = (type: string) => {
+        // errorHint.hide();
+        // loadingHint.setMessage('Loading...');
+        resultsManager.loading();
+        performCalculateRouteRequest()
+            .then(function (response: any) {
+                handleCalculateRouteResponse(response, type);
+            })
+            .catch(handleCalculateRouteError);
+    }
+
+    function handleCalculateRouteError() {
+        clearMap();
+        resultsManager.resultsNotFound();
+        setTimeout(() => setError(""), 8000)
+        setError("There was a problem calculating the route")
+        // errorHint.setMessage('There was a problem calculating the route');
+        // loadingHint.hide();
+    }
+
+    function performCalculateRouteRequest() {
+        return ttSvc.services.calculateRoute({
+            key: process.env.REACT_APP_NUWE2103_API_KEY || "",
+            instructionsType: 'tagged',
+            traffic: false,
+            locations: routePoints.start!.toArray().join() + ':' + routePoints.finish!.toArray().join()
+        });
+    }
+
+    const handleCalculateRouteResponse = (response: any, type: string) => {
+        const geojson = response.toGeoJson();
+        const feature = geojson.features[0];
+        const coordinates = feature.geometry.coordinates;
+        const guidance = feature.properties.guidance;
+
+        clearMap();
+        resultsManager.success();
+        const guidancePanelElement = DomHelpers.elementFactory('div', 'guidance-panel');
+        resultsManager.append(guidancePanelElement);
+        const guidancePanel = new (GuidancePanel as any)(guidance, {
+            map: map,
+            coordinates: coordinates
+        });
+        guidancePanel.bindEvents();
+        map?.addLayer({
+            'id': 'route',
+            'type': 'line',
+            'source': {
+                'type': 'geojson',
+                'data': geojson
+            },
+            'paint': {
+                'line-color': '#4a90e2',
+                'line-width': 6
+            }
+        });
+        const bounds = new tt.LngLatBounds();
+        coordinates.forEach(function (point: any) {
+            bounds.extend(tt.LngLat.convert(point));
+        });
+        map?.fitBounds(bounds, { duration: 0, padding: 50 });
+        // loadingHint.hide();
+    }
+
+
+    function clearMap() {
+        if (!map?.getLayer('route')) {
+            return;
+        }
+        map?.removeLayer('route');
+        map?.removeSource('route');
+    }
+
+    //
+    // Handle Route
+    //
+    //////////////////////////////////////////////////////
+
     useEffect(() => {
-console.log("useEffect MAP")
         const map = tt.map({
             key: process.env.REACT_APP_NUWE2103_API_KEY || "",
             container: mapElement.current!,
@@ -158,16 +270,16 @@ console.log("useEffect MAP")
             showAccuracyCircle: false,
             trackUserLocation: false,
             showUserLocation: false,
-            fitBoundsOptions: {zoom: 16}
+            fitBoundsOptions: { zoom: 16 }
         });
         map.addControl(geolocateControl);
-        map.addControl(new tt.NavigationControl({showZoom: false, showExtendedRotationControls: true, showPitch: true, showExtendedPitchControls: true}));
-        
+        map.addControl(new tt.NavigationControl({ showZoom: false, showExtendedRotationControls: true, showPitch: true, showExtendedPitchControls: true }));
+
         map.on("moveend", e => {
             if ((e as moveEvent).geolocateSource)
                 setCenter(map.getCenter())
         });
-        map.on('styledata', function() {
+        map.on('styledata', function () {
             if (!map.getLayer("radiusofsearch"))
                 map.addLayer({
                     'id': 'radiusofsearch',
@@ -190,7 +302,7 @@ console.log("useEffect MAP")
                         'fill-outline-color': 'black'
                     }
                 });
-            
+
             setStyleData(true);
         });
         setMap(map)
@@ -199,7 +311,6 @@ console.log("useEffect MAP")
     }, [localization]);
 
     useEffect(() => {
-console.log("useEffect LOC")
         navigator.geolocation.getCurrentPosition(e => {
             setLocalization(new tt.LngLat(e.coords.longitude, e.coords.latitude));
             setCenter(new tt.LngLat(e.coords.longitude, e.coords.latitude));
@@ -209,26 +320,35 @@ console.log("useEffect LOC")
     useEffect(() => {
         if (!map || !isStyleData)
             return;
-console.log("useEffect CENTERMARKER")
         centerMarker.remove().setLngLat(center).addTo(map)
     }, [center, centerMarker, isStyleData, map])
 
     return (
         <div className="App">
-            <Navbar dark={true} style={{ backgroundColor: "#4287f5" }}>
-                <NavbarBrand>Life after Google</NavbarBrand>
-            </Navbar>
-            <Container className="mapContainer">
-                <Row>
-                    <Col xs="4">
-                        <SidePanel center={center} handleSearch={handleSearch}></SidePanel>
-                    </Col>
-                    <Col xs="8">
-                        <CustomControl></CustomControl>
-                        <div ref={mapElement} className="mapDiv" />
-                    </Col>
-                </Row>
-            </Container>
+            <AppBar className={classes.appBar}>
+                <Typography variant="h6">Life after Google</Typography>
+            </AppBar>
+            <Paper className={classes.mapContainer}>
+                <Paper className={classes.panel}>
+                    <SidePanel center={center} handleState={handleState}></SidePanel>
+                </Paper>
+                <Paper className={classes.map}>
+                    <CustomControl></CustomControl>
+                    <div ref={mapElement} className="mapDiv" />
+                    {error &&
+                        <Alert onClose={() => setError("")} style={{position: "absolute", bottom: 5, right: 50}} severity="warning">
+                            <AlertTitle>Warning</AlertTitle>
+                            {error}
+                        </Alert>
+                    }
+                    {count &&
+                        <Alert onClose={() => setError("")} style={{position: "absolute", bottom: 5, right: 50}} severity="success">
+                            <AlertTitle>Success</AlertTitle>
+                            {count === 1 ? "Encontrado un único sitio" : "Encontrados " + count + " sitios."}
+                        </Alert>
+                    }
+                </Paper>
+            </Paper>
         </div>
     );
 }
